@@ -15,34 +15,32 @@ function App() {
   const [errorStatus, setErrorStatus] = useState<boolean>(false);
   const [modalStatus, setModalStatus] = useState<boolean>(false);
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
-  function onSubmit(formData: FormData) {
-    const newQuery: string = String(formData.get("query"));
-    if (newQuery == "") {
-      toast("Please enter your search query.");
-    } else {
-      setQuery(newQuery);
-    }
+
+  function handleSearch(query: string) {
+    setQuery(query);
   }
+
   useEffect(() => {
     if (!query) return;
     let ignore = false;
+    setLoaderStatus(true);
+    setErrorStatus(false);
+    setMoviesArr([]);
+
     fetchMovies(query)
       .then((arrMovies) => {
-        setLoaderStatus(true);
-        setErrorStatus(false);
-        setTimeout(() => {
-          if (ignore) return;
-          if (arrMovies.length === 0) {
-            toast("No movies found for your request.");
-          }
-          setMoviesArr(arrMovies);
-          setLoaderStatus(false);
-        }, 1000);
+        if (ignore) return;
+        if (arrMovies.length === 0) {
+          toast("No movies found for your request.");
+        }
+        setMoviesArr(arrMovies);
       })
       .catch(() => {
-        setErrorStatus(true);
+        if (!ignore) setErrorStatus(true);
       })
-      .finally(() => setMoviesArr([]));
+      .finally(() => {
+        if (!ignore) setLoaderStatus(false);
+      });
 
     return () => {
       ignore = true;
@@ -53,6 +51,7 @@ function App() {
     setModalStatus(false);
     setSelectedMovie(null);
   }
+
   function onSelect(movie: Movie) {
     setSelectedMovie(movie);
     setModalStatus(true);
@@ -60,12 +59,14 @@ function App() {
 
   return (
     <>
-      <SearchBar onSubmit={onSubmit} />
+      <SearchBar onSubmit={handleSearch} />
       <Toaster />
       {loaderStatus && <Loader />}
       {errorStatus && <ErrorMessage />}
       <MovieGrid onSelect={onSelect} movies={moviesArr} />
-      {modalStatus && <MovieModal movie={selectedMovie} onClose={onClose} />}
+      {modalStatus && selectedMovie && (
+        <MovieModal movie={selectedMovie} onClose={onClose} />
+      )}
     </>
   );
 }
